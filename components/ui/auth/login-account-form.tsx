@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useRouter } from "next/navigation";
 
 
 const formSchema = z.object({
@@ -23,7 +25,7 @@ password: z.string({
 })
 
 export function LoginAccountForm(){
-
+    const router = useRouter();
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -33,7 +35,21 @@ export function LoginAccountForm(){
     });
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        console.log(values);
+        try{
+            const supabase = createClientComponentClient();
+            const { email, password } = values;
+            
+            const { error, data:{session} } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            form.reset();
+            router.refresh()
+        }
+        catch (error) {
+            console.log("LoginAccountForm:onSubmit", error);
+        }
     };
 
     return <div className="flex flex-col justify-center items-center space-y-2">
@@ -75,7 +91,7 @@ export function LoginAccountForm(){
                         </FormItem>
                     )}
                 />
-                <Button type="submit">Create Account</Button>
+                <Button type="submit">Login</Button>
             </form>
         </Form>
     </div>

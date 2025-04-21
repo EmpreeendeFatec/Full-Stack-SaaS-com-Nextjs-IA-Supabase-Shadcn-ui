@@ -14,7 +14,7 @@ import { LoginAccountForm } from "@/components/ui/auth/login-account-form";
 export default async function Home() {
   let loggedIn = false;
   try {
-    const supabase = createServerComponentClient({ cookies });
+    const supabase = createServerComponentClient({cookies});
     const { 
       data: { session },
    } = await supabase.auth.getSession();
