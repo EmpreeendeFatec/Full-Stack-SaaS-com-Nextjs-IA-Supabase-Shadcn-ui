@@ -41,7 +41,7 @@ export function ImageUploadPlaceHolder() {
             );
 
             if(!error){
-              setFileToProcess(data)
+              setFileToProcess(data);
             }
         }catch(error){
             console.log("onDrop", error);
@@ -68,6 +68,29 @@ export function ImageUploadPlaceHolder() {
     const HandleDialogOpenChange = async (e: boolean) => {
         console.log(e);
     };
+
+    const handleEnhance = async() => {
+      try{
+        const supabase = createClientComponentClient()
+        const {data: {publicUrl}} = await supabase.storage.from(
+          process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER!)
+          .getPublicUrl(`${fileToProcess?.path}`)
+          //.createSignedUrl(`${fileToProcess?.path}`, 60) -> usa esse código em vez da linha anterior caso queira travar o acesso
+
+          const res = await fetch("/api/ai/replicate", {
+            method: "POST",
+            headers:{
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              imageUrl: publicUrl,
+            }),
+          })
+          console.log("publicUrl: ", publicUrl);
+      } catch(error){
+        console.log("handleEnhance: ", error);
+      }
+    }
 
   return (
     <div className="flex h-[200px] w-full shrink-0 items-center justify-center rounded-md border border-dashed">
@@ -160,7 +183,7 @@ export function ImageUploadPlaceHolder() {
              </div>
             </div>
             <DialogFooter>
-              <Button>Enhance</Button>
+              <Button onClick={handleEnhance}>Enhance</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
