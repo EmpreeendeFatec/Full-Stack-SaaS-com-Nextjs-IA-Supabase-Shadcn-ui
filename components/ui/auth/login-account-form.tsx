@@ -83,6 +83,7 @@ export function LoginAccountForm(){
                             <FormLabel>Password</FormLabel>
                             <FormControl>
                                 <Input 
+                                type="password"
                                 placeholder="Password" 
                                 {...field} />
                             </FormControl>

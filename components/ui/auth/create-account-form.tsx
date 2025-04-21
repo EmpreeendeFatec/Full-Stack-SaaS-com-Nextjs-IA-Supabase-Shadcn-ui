@@ -86,7 +86,8 @@ export function CreateAccountForm(){
                         <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                                <Input 
+                                <Input
+                                type="password"
                                 placeholder="Password" 
                                 {...field} />
                             </FormControl>
