@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useCallback, useEffect, useState } from "react";
 
 import {useDropzone} from "react-dropzone"
@@ -21,17 +22,27 @@ interface FilePreview{
 export function ImageUploadPlaceHolder() {
 
     const [file, setFile] = useState<FilePreview | null>()
-    const [fileToProcess, setFileProcess] = useState<{
+    const [fileToProcess, setFileToProcess] = useState<{
     path: string;
     } | null>(null);
     const [restoredFile, setRestoreFile] = useState<FilePreview | null>();
 
     const onDrop = useCallback(async (acceptFiles: File[]) => {
         try{
+          //capture file
             const file = acceptFiles[0];
             setFile({
-                file, preview: URL.createObjectURL(file)
-            })
+                file, preview: URL.createObjectURL(file),
+            });
+            const supabase = createClientComponentClient()
+            const {data, error} = await supabase.storage.from(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER!).
+            upload(`${process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER_PROCESSING}/${acceptFiles[0].name}`,
+              acceptFiles[0]
+            );
+
+            if(!error){
+              setFileToProcess(data)
+            }
         }catch(error){
             console.log("onDrop", error);
         }
