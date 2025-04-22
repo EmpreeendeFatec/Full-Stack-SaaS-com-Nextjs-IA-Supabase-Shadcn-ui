@@ -1,4 +1,3 @@
-import { UserNav } from "@/components/common/use-nav";
 import UserAppHeader from "@/components/user-app/user-app-header";
 import { Sidebar } from "@/components/user-app/user-app-sidebar";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -15,6 +14,8 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { ImageUploadPlaceHolder } from "@/components/user-app/img-upload-placeholder";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { UserAppImage } from "@/components/user-app/user-app-image";
 
 export default async function UserApp() {
     let loggedIn = false;
@@ -24,13 +25,26 @@ export default async function UserApp() {
       data: { session },
    } = await supabase.auth.getSession();
 
-   if (session) loggedIn = true;
-  
-  }catch (error) {
-    console.log("Home", error);
-  } finally {
-    if (!loggedIn) redirect("/", RedirectType.replace);
+   if (session){
+    loggedIn = true;
   }
+  
+}catch (error) {
+  console.log("Home", error);
+} finally {
+  if (!loggedIn) redirect("/", RedirectType.replace);
+}
+
+const {data: restoredImages ,error} = await supabase.storage.from(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER!)
+.list(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER_RESTORED!, {
+  limit: 10,
+  offset: 0,
+  sortBy: {column: "name", order: "asc"}
+});
+
+const {data: {publicUrl}} = await supabase.storage.from(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER!)
+.getPublicUrl(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER_RESTORED)
+
     
     return( 
 <>
@@ -42,7 +56,7 @@ export default async function UserApp() {
             <Sidebar className="hidden lg:block"/>
               <div className="col-span-3 lg:col-span-4 lg:border-l">
                 <div className="h-full px-4 py-6 lg:px-8">
-                 <Tabs defaultValue="music" className="h-full space-y-6">
+                 <Tabs defaultValue="photos" className="h-full space-y-6">
                     <div className="space-between flex items-center">
                       <TabsList>
                         <TabsTrigger value="photos" className="relative">
@@ -75,51 +89,30 @@ export default async function UserApp() {
                         </div>
                       </div>
                       <Separator className="my-4" />
-                      <div className="relative">
+                      <div className="flex flex-col items-center justify-center space-y-2">
                         <ImageUploadPlaceHolder/>
-                        {/*<ScrollArea>
-                          <div className="flex space-x-4 pb-4">
-                            {listenNowAlbums.map((album) => (
-                              <AlbumArtwork
-                                key={album.name}
-                                album={album}
+                        {<ScrollArea>
+                          <div className="grid grid-cols-1
+                          sm:grid-cols-2
+                          md:grid-cols-3
+                          lg:grid-cols-4
+                          gap-2 justify-evenly">
+                            { restoredImages?.map((restoredImage) => (
+                              <UserAppImage
+                                key={restoredImage.name}
+                                image={restoredImage}
                                 className="w-[250px]"
-                                aspectRatio="portrait"
+                                aspectRatio="square"
                                 width={250}
                                 height={330}
+                                publicUrl={publicUrl}
                               />
                             ))}
                           </div>
                           <ScrollBar orientation="horizontal" />
-                        </ScrollArea>*/}
-                      </div>
-                      <div className="mt-6 space-y-1">
-                        <h2 className="text-2xl font-semibold tracking-tight">
-                          Made for You
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                          Your personal playlists. Updated daily.
-                        </p>
+                        </ScrollArea>}
                       </div>
                       <Separator className="my-4" />
-                      <div className="relative">
-                        Lista 2
-                     { /*  <ScrollArea>
-                          <div className="flex space-x-4 pb-4">
-                            {madeForYouAlbums.map((album) => (
-                              <AlbumArtwork
-                                key={album.name}
-                                album={album}
-                                className="w-[150px]"
-                                aspectRatio="square"
-                                width={150}
-                                height={150}
-                              />
-                            ))}
-                          </div>
-                          <ScrollBar orientation="horizontal" />
-                        </ScrollArea>*/}
-                      </div>
                     </TabsContent>
                     <TabsContent
                       value="documents"

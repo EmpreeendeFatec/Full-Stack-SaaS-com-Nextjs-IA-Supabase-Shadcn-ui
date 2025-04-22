@@ -10,87 +10,118 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 
-import {useDropzone} from "react-dropzone"
+import { useDropzone } from "react-dropzone"
 
-interface FilePreview{
-    file: Blob;
-    preview: string;
+interface FilePreview {
+  file: Blob;
+  preview: string;
 }
 
 export function ImageUploadPlaceHolder() {
+  const [isMounted, setIsMounted] = useState(false);
 
-    const [file, setFile] = useState<FilePreview | null>()
-    const [fileToProcess, setFileToProcess] = useState<{
+  const router = useRouter
+
+  const [file, setFile] = useState<FilePreview | null>()
+  const [fileToProcess, setFileToProcess] = useState<{
     path: string;
-    } | null>(null);
-    const [restoredFile, setRestoreFile] = useState<FilePreview | null>();
+  } | null>(null);
+  const [restoredFile, setRestoreFile] = useState<FilePreview | null>();
 
-    const onDrop = useCallback(async (acceptFiles: File[]) => {
-        try{
-          //capture file
-            const file = acceptFiles[0];
-            setFile({
-                file, preview: URL.createObjectURL(file),
-            });
-            const supabase = createClientComponentClient()
-            const {data, error} = await supabase.storage.from(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER!).
-            upload(`${process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER_PROCESSING}/${acceptFiles[0].name}`,
-              acceptFiles[0]
-            );
+  const onDrop = useCallback(async (acceptFiles: File[]) => {
+    try {
+      //capture file
+      const file = acceptFiles[0];
+      setFile({
+        file, preview: URL.createObjectURL(file),
+      });
+      const supabase = createClientComponentClient()
+      const { data, error } = await supabase.storage.from(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER!).
+        upload(`${process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER_PROCESSING}/${acceptFiles[0].name}`,
+          acceptFiles[0]
+        );
 
-            if(!error){
-              setFileToProcess(data);
-            }
-        }catch(error){
-            console.log("onDrop", error);
-        }
-        }, []);
-
-        useEffect(() => {
-        return () => {
-            if(file) URL.revokeObjectURL(file.preview);
-            if(restoredFile) URL.revokeObjectURL(restoredFile.preview);
-        }
-        }, [])
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        onDrop,
-        maxFiles: 1,
-        accept: {
-            "image/png": [".png"],
-            "image/jpeg": [".jpg"],
-        },
-});
-
-    
-
-    const HandleDialogOpenChange = async (e: boolean) => {
-        console.log(e);
-    };
-
-    const handleEnhance = async() => {
-      try{
-        const supabase = createClientComponentClient()
-        const {data: {publicUrl}} = await supabase.storage.from(
-          process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER!)
-          .getPublicUrl(`${fileToProcess?.path}`)
-          //.createSignedUrl(`${fileToProcess?.path}`, 60) -> usa esse código em vez da linha anterior caso queira travar o acesso
-
-          const res = await fetch("/api/ai/replicate", {
-            method: "POST",
-            headers:{
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              imageUrl: publicUrl,
-            }),
-          })
-          console.log("publicUrl: ", publicUrl);
-      } catch(error){
-        console.log("handleEnhance: ", error);
+      if (!error) {
+        setFileToProcess(data);
       }
+    } catch (error) {
+      console.log("onDrop", error);
     }
+  }, []);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => {
+      if (file) URL.revokeObjectURL(file.preview);
+      if (restoredFile) URL.revokeObjectURL(restoredFile.preview);
+    }
+  }, [])
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    maxFiles: 1,
+    accept: {
+      "image/png": [".png"],
+      "image/jpeg": [".jpg"],
+    },
+  });
+
+
+
+  const HandleDialogOpenChange = async (e: boolean) => {
+    if(!e){
+      setFile(null)
+      setRestoreFile(null)
+      router.refresh();
+    }
+  };
+
+  const handleEnhance = async () => {
+    try {
+      const supabase = createClientComponentClient()
+      const { data: { publicUrl } } = await supabase.storage.from(
+        process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER!)
+        .getPublicUrl(`${fileToProcess?.path}`)
+      //.createSignedUrl(`${fileToProcess?.path}`, 60) -> usa esse código em vez da linha anterior caso queira travar o acesso
+
+      const res = await fetch("/api/ai/replicate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl: publicUrl,
+        }),
+      });
+
+      const restoreImageUrl = await res.json()
+
+      const readImageRes = await fetch(restoreImageUrl.data);
+      
+      const imageBlob = await readImageRes.blob()
+
+      setRestoreFile({
+        file: imageBlob,
+        preview: URL.createObjectURL(imageBlob),
+      });
+
+      const {data, error} = await supabase.storage.from(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER!).upload(`${
+        process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER_RESTORED!}/${file?.file.name}`,imageBlob)
+      
+        if(error){
+          setRestoreFile(null);
+        }
+      
+    } catch (error) {
+      console.log("handleEnhance: ", error);
+      setFile(null);
+      setRestoreFile(null);
+    }
+  };
+
+  if(!isMounted) return null;
 
   return (
     <div className="flex h-[200px] w-full shrink-0 items-center justify-center rounded-md border border-dashed">
@@ -115,7 +146,7 @@ export function ImageUploadPlaceHolder() {
           The photo you add will be enchanced by AI
         </p>
         <Dialog onOpenChange={HandleDialogOpenChange}>
-          <DialogTrigger>
+          <DialogTrigger asChild>
             <Button size="sm" className="relative">
               Bring your past to life
             </Button>
@@ -129,58 +160,58 @@ export function ImageUploadPlaceHolder() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-             {!file && (
-                <div {...getRootProps()}>
-                <input {...getInputProps()} />
-                {
-                    isDragActive ? (
+                {!file && (
+                  <div {...getRootProps()}>
+                    <input {...getInputProps()} />
+                    {
+                      isDragActive ? (
                         <p className="flex items-center justify
                         bg-blue-100 opacity-70 border border-dashed
                         border-blue-300 p-6 h-36 rounded-md">Drop your Photo here...</p>
-                    ) : (
+                      ) : (
                         <p className="flex items-center justify
                         bg-blue-100 opacity-70 border border-dashed
                         border-blue-300 p-6 h-36 rounded-md">
-                            Drag or Click to choose image...
-                    </p>
-                    )}
-                </div>
-             )}
-             <div className="flex flex-col items-center justify-evenly
+                          Drag or Click to choose image...
+                        </p>
+                      )}
+                  </div>
+                )}
+                <div className="flex flex-col items-center justify-evenly
              sm:flex-row gap-2">
-                {
+                  {
                     file && (
-                        <div className="flex flex-row
+                      <div className="flex flex-row
                         flex-wrap drop-shadow-md">
-                            <div className="flex w-48 h-48 relative">
-                            <img 
+                        <div className="flex w-48 h-48 relative">
+                          <img
                             src={file.preview}
                             className="w-48 h-48
                             object-contain rounded-md"
                             onLoad={() => URL.revokeObjectURL(file.preview)}
-                            />
-                                </div>
+                          />
                         </div>
+                      </div>
                     )
-                }
+                  }
 
-{
+                  {
                     restoredFile && (
-                        <div className="flex flex-row
+                      <div className="flex flex-row
                         flex-wrap drop-shadow-md">
-                            <div className="flex w-48 h-48 relative">
-                            <img 
+                        <div className="flex w-48 h-48 relative">
+                          <img
                             src={restoredFile.preview}
                             className="w-48 h-48
                             object-contain rounded-md"
                             onLoad={() => URL.revokeObjectURL(restoredFile.preview)}
-                            />
-                                </div>
+                          />
                         </div>
+                      </div>
                     )
-                }
-             </div>
-             </div>
+                  }
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button onClick={handleEnhance}>Enhance</Button>
