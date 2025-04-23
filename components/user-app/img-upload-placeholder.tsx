@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { useDropzone } from "react-dropzone"
@@ -23,7 +23,7 @@ interface FilePreview {
 export function ImageUploadPlaceHolder() {
   const [isMounted, setIsMounted] = useState(false);
 
-  const router = useRouter
+  const router = useRouter();
 
   const [file, setFile] = useState<FilePreview | null>()
   const [fileToProcess, setFileToProcess] = useState<{
@@ -108,7 +108,7 @@ export function ImageUploadPlaceHolder() {
       });
 
       const {data, error} = await supabase.storage.from(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER!).upload(`${
-        process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER_RESTORED!}/${file?.file.name}`,imageBlob)
+        process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER_RESTORED!}`,imageBlob)
       
         if(error){
           setRestoreFile(null);

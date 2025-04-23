@@ -20,6 +20,8 @@ export async function POST(req: NextRequestWithImage, res: NextResponse){
         });
     }
 
+    
+
     const startRestoreProcess = await fetch("https://api.replicate.com/v1/predictions",
         {
             method: "POST",
@@ -37,6 +39,13 @@ export async function POST(req: NextRequestWithImage, res: NextResponse){
             }),
         }
     )
+    if (!startRestoreProcess.ok) {
+        const errorText = await startRestoreProcess.text();
+        console.error("Erro na chamada à Replicate:", errorText);
+        return new NextResponse("Erro ao iniciar o processo na Replicate", {
+            status: 500,
+        });
+    }
 
     let jsonStartProcessResponse = await startRestoreProcess.json()
     let endpointUrl = jsonStartProcessResponse.urls.get

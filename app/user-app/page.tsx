@@ -19,8 +19,8 @@ import { UserAppImage } from "@/components/user-app/user-app-image";
 
 export default async function UserApp() {
     let loggedIn = false;
-  try {
     const supabase = createServerComponentClient({cookies});
+  try {
     const { 
       data: { session },
    } = await supabase.auth.getSession();
@@ -43,7 +43,7 @@ const {data: restoredImages ,error} = await supabase.storage.from(process.env.NE
 });
 
 const {data: {publicUrl}} = await supabase.storage.from(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER!)
-.getPublicUrl(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER_RESTORED)
+.getPublicUrl(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER_RESTORED!)
 
     
     return( 
